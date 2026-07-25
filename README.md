@@ -18,7 +18,20 @@ pinned: false
 
 - 📷 上傳食物照片 → 顯示食物名稱與估算熱量（kcal）
 - 🚫 非食物照片 → 回覆「這個不是食物」
-- 🤖 使用 Google Gemini（`gemini-2.5-flash`）視覺模型
+- 🤖 使用 Google Gemini（`gemini-flash-latest`）視覺模型
+
+> 模型使用 `gemini-flash-latest` 別名（而非固定的 `gemini-2.5-flash`），
+> 會自動跟隨 Google 當前的穩定 flash 模型，避免因特定版本下架而失效。
+
+## 專案結構
+
+| 檔案 | 用途 |
+|------|------|
+| `app.py` | 主程式（Gradio 介面 + Gemini 視覺辨識） |
+| `README.md` | 說明文件，含 HF Space 設定的 YAML metadata |
+| `requirements.txt` | HF Space 安裝依賴用（釘住實測版本） |
+| `pyproject.toml` / `uv.lock` | uv 本機環境與鎖定版本 |
+| `.env.example` | API key 範本（實際的 `.env` 不進版控） |
 
 ## 本機執行
 

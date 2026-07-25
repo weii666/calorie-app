@@ -11,3 +11,6 @@ wheels/
 
 # Secrets（絕對不要 commit 進 repo）
 .env
+
+# 需求原稿（保留在本機，不進版控）
+prompt.txt
