@@ -1,0 +1,12 @@
+[project]
+name = "calorie-app"
+version = "0.1.0"
+description = "用 Google Gemini 辨識食物照片並估算熱量的 Gradio App"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "gradio>=5.9.1",
+    "google-genai>=0.8.0",
+    "pillow>=10.0.0",
+    "python-dotenv>=1.0.1",
+]
