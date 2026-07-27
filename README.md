@@ -1,14 +1,3 @@
----
-title: 食物熱量估算
-emoji: 🍱
-colorFrom: green
-colorTo: yellow
-sdk: gradio
-sdk_version: 6.20.0
-app_file: app.py
-pinned: false
----
-
 # 🍱 食物熱量估算 App
 
 上傳一張照片，透過 Google Gemini 視覺模型估算食物的大概熱量；
@@ -28,8 +17,9 @@ pinned: false
 | 檔案 | 用途 |
 |------|------|
 | `app.py` | 主程式（Gradio 介面 + Gemini 視覺辨識） |
-| `README.md` | 說明文件，含 HF Space 設定的 YAML metadata |
-| `requirements.txt` | HF Space 安裝依賴用（釘住實測版本） |
+| `Dockerfile` | Cloud Run 部署用容器定義 |
+| `.dockerignore` | 排除不需打包進映像的檔案 |
+| `requirements.txt` | 依賴清單（釘住實測版本） |
 | `pyproject.toml` / `uv.lock` | uv 本機環境與鎖定版本 |
 | `.env.example` | API key 範本（實際的 `.env` 不進版控） |
 
@@ -51,22 +41,54 @@ uv run app.py
 
 啟動後開啟終端機顯示的網址（預設 http://127.0.0.1:7860）。
 
-## 部署到 Hugging Face Space
+## 部署到 Google Cloud Run
 
-1. 在 https://huggingface.co/new-space 建立一個 **Gradio** Space。
-2. 在 Space 的 **Settings -> Variables and secrets** 新增一個 Secret：
-   - Name：`GOOGLE_API_KEY`
-   - Value：你的 Google API key
-3. 把本 repo push 到該 Space 的 git remote（需要 HF 的 write token）：
+程式會讀取 `PORT` 環境變數並綁定 `0.0.0.0`，符合 Cloud Run 需求。
+API key 以 Secret Manager 管理，不寫死在映像裡。
+
+### 首次部署
 
 ```bash
-git remote add space https://huggingface.co/spaces/<你的帳號>/<space 名稱>
-git push space main
+# 1. 設定專案並啟用所需 API
+gcloud config set project <你的 PROJECT_ID>
+gcloud services enable run.googleapis.com cloudbuild.googleapis.com \
+  artifactregistry.googleapis.com secretmanager.googleapis.com
+
+# 2. 把 API key 存進 Secret Manager
+printf '%s' '<你的 GOOGLE_API_KEY>' | \
+  gcloud secrets create GOOGLE_API_KEY --replication-policy=automatic --data-file=-
+
+# 3. 授權 Cloud Run 執行時的 service account 讀取該 secret
+PROJECT_NUM=$(gcloud projects describe <你的 PROJECT_ID> --format='value(projectNumber)')
+gcloud secrets add-iam-policy-binding GOOGLE_API_KEY \
+  --member="serviceAccount:${PROJECT_NUM}-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor"
+
+# 4. Build + Deploy（Cloud Build 依 Dockerfile 建映像）
+gcloud run deploy calorie-app \
+  --source . \
+  --region asia-east1 \
+  --allow-unauthenticated \
+  --set-secrets GOOGLE_API_KEY=GOOGLE_API_KEY:latest
 ```
 
-> 不要把 `GOOGLE_API_KEY` commit 進 repo，一律用 Space 的 Secret 設定。
+### 之後更新程式碼
+
+secret 與權限都設好後，只要重跑部署指令即可：
+
+```bash
+gcloud run deploy calorie-app --source . --region asia-east1
+```
+
+### 更換 API key
+
+```bash
+printf '%s' '<新的 key>' | gcloud secrets versions add GOOGLE_API_KEY --data-file=-
+gcloud run deploy calorie-app --source . --region asia-east1  # 重新部署以抓 latest
+```
+
+> 不要把 `GOOGLE_API_KEY` commit 進 repo，一律用 Secret Manager 管理。
 
 ## 取得 API key
 
 - Google API key：https://aistudio.google.com/apikey
-- Hugging Face token（部署用，需 Write 權限）：https://huggingface.co/settings/tokens

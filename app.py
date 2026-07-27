@@ -57,8 +57,8 @@ def _get_client() -> genai.Client:
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         raise gr.Error(
-            "找不到 GOOGLE_API_KEY。請在本機的 .env 檔或 Hugging Face Space 的 "
-            "Secrets 中設定 GOOGLE_API_KEY。"
+            "找不到 GOOGLE_API_KEY。請在本機的 .env 檔設定，"
+            "或在 Cloud Run 服務以環境變數／Secret 的方式設定 GOOGLE_API_KEY。"
         )
     return genai.Client(api_key=api_key)
 
@@ -121,4 +121,7 @@ with gr.Blocks(title="食物熱量估算") as demo:
 
 
 if __name__ == "__main__":
-    demo.launch()
+    # Cloud Run（及多數雲端平台）會用 PORT 環境變數指定對外埠號，
+    # 並要求綁定 0.0.0.0 才能從容器外連進來；本機沒有 PORT 時退回 7860。
+    port = int(os.environ.get("PORT", 7860))
+    demo.launch(server_name="0.0.0.0", server_port=port)

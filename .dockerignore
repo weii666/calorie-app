@@ -1,0 +1,9 @@
+# 不要打包進容器映像
+.venv
+.git
+.env
+__pycache__
+*.pyc
+uv.lock
+prompt.txt
+README.md
